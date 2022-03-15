@@ -1,6 +1,7 @@
 <script lang="ts">
 	import 'carbon-components-svelte/css/white.css';
 	import { Dropdown, Button, CodeSnippet } from 'carbon-components-svelte';
+	import { SvelteToast, toast } from '@zerodevx/svelte-toast'
 
 	// @ts-ignore
 	import type monaco from 'monaco-editor';
@@ -23,6 +24,13 @@
 
 	let translations: { [langString: string]: string } = {};
 	let translating = false;
+
+	let errorToastOptions = {
+		theme: {
+			'--toastBackground': '#F56565',
+			'--toastBarBackground': '#C53030'
+		}
+	};
 
 	onMount(async () => {
 		// @ts-ignore
@@ -81,7 +89,7 @@
 		// for now limit of input json 1500chars (inlcuding keys we don't send to deepl)
 		// because deepL api max limit of 500k per month
 		if (inputText.length > 1500) {
-			alert('Input is too long (over 1.5k characters).');
+			toast.push('Input is too long (over 1.5k characters).', errorToastOptions);
 			return;
 		}
 
@@ -89,8 +97,7 @@
 		try {
 			inputJson = JSON.parse(inputText);
 		} catch (e) {
-			// TOODO nice modal not alert?
-			alert('Invalid JSON');
+			toast.push('Invalid JSON', errorToastOptions);
 			return;
 		}
 
@@ -125,8 +132,7 @@
 			}
 		} catch (e) {
 			console.error(e);
-			// TODO nice modal not alert?
-			alert(e);
+			toast.push(e.message, errorToastOptions);
 		} finally {
 			translating = false;
 		}
@@ -137,9 +143,12 @@
 		for (const key of Object.keys(translations)) {
 			message += `${languageFlags[key]} ${key.toUpperCase()}:\n\n\`\`\`\n${translations[key]}\n\`\`\`\n\n`;
 		}
-		navigator.clipboard.writeText(message)
+		navigator.clipboard.writeText(message);
+		toast.push('Copied markdown to clipboard.\nPress Ctrl/Cmd+Shift+F in Slack to apply formatting.', { duration: 20000 });
 	}
 </script>
+
+<SvelteToast/>
 
 <div class="content">
 	<h1>
@@ -196,6 +205,14 @@
 </div>
 
 <style lang="scss">
+	// toast at bottom centre
+	:root {
+    --toastContainerTop: auto;
+    --toastContainerRight: auto;
+    --toastContainerBottom: 8rem;
+    --toastContainerLeft: calc(50vw - 8rem);
+  }
+
 	// general styles
 	div.content {
 		width: 100%;
